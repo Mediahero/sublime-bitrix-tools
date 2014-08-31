@@ -13,7 +13,7 @@ Adds to Sublime Text 3 special commands that automate Bitrix development.
 Установка
 ---------
 
-Для работы плагина необходимо установить [Bitrix Console Tool](https://github.com/Mediahero/bitrix-console-tool) и пропискать в PATH каталог, в котором находится скрипт `bxc`.
+Для работы плагина необходимо установить [Bitrix Console Tool](https://github.com/Mediahero/bitrix-console-tool) и прописать в PATH каталог, в котором находится скрипт `bxc`.
 
 В настоящий момент доступна только ручная установка плагина.
 
