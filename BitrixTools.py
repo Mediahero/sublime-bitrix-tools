@@ -37,7 +37,7 @@ class BitrixInsertComponentCommand(sublime_plugin.TextCommand):
         (success, output) = run_cmd(self.bitrix_root, command, True)
         if success:
             return output
-        else: # Show error message
+        elif output: # Show error message
             sublime.status_message(output)
 
     def get_components(self):
