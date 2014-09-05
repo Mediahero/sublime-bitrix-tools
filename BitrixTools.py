@@ -82,7 +82,7 @@ class BitrixSelectComponentTemplate(sublime_plugin.TextCommand):
         command = 'bxc templates:list -s --no-ansi ' + component_name
         (success, output) = run_cmd(self.bitrix_root, command, True)
         if not success:
-            sublime_plugin.status_message(output)            
+            sublime.status_message(output)            
         return output.split(os.linesep) if success else []
 
     def on_template_select(self, index):
@@ -144,13 +144,31 @@ class BitrixOpenComponentTemplateCommand(sublime_plugin.TextCommand):
             command += ' --full-path';
         (success, output) = run_cmd(self.bitrix_root, command, True)
         if not success:
-            sublime_plugin.status_message(output)            
+            sublime.status_message(output)            
         return output.split(os.linesep) if success else []
 
 class BitrixInsertText(sublime_plugin.TextCommand):
     def run(self, edit, text):
         if text:
             self.view.insert(edit, self.view.sel()[0].begin(), text)
+
+BX_IBLOCK_PROPERTIES = [
+    'ID', 'NAME', 'CODE', 'IBLOCK_ID', 'IBLOCK_SECTION_ID', 'IBLOCK_CODE', 'ACTIVE',
+    'DATE_ACTIVE_FROM', 'DATE_ACTIVE_TO', 'SORT', 'PREVIEW_PICTURE', 'PREVIEW_TEXT',
+    'PREVIEW_TEXT_TYPE', 'DETAIL_PICTURE', 'DETAIL_TEXT', 'DETAIL_TEXT_TYPE', 'SEARCHABLE_CONTENT',
+    'DATE_CREATE', 'CREATED_BY', 'CREATED_USER_NAME', 'TIMESTAMP_X', 'MODIFIED_BY', 'USER_NAME',
+    'LANG_DIR', 'LIST_PAGE_URL', 'DETAIL_PAGE_URL', 'SHOW_COUNTER', 'SHOW_COUNTER_START',
+    'WF_COMMENTS', 'WF_STATUS_ID', 'LOCK_STATUS', 'TAGS', 'DISPLAY_PROPERTIES', 'PROPERTIES'
+]            
+
+class BitrixAutocomplete(sublime_plugin.EventListener):
+    def on_query_completions(self, view, prefix, locations):
+        pos = view.sel()[0].begin();
+        left_part = view.substr(sublime.Region(pos - 15, pos - 1))
+        test = re.compile('\$(arItem|arResult)\s*\[(\"|\')$');
+        sublime.status_message(left_part)
+        if test.search(left_part): 
+            return [(str(x),) * 2 for x in BX_IBLOCK_PROPERTIES]
 
 def get_bitrix_root(start_path):
     parts = start_path.split(os.sep)
