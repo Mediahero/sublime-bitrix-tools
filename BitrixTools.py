@@ -99,7 +99,7 @@ class BitrixOpenComponentTemplateCommand(sublime_plugin.TextCommand):
 
         (component, template) = self.parse_line_under_cursor()
         if not component or not template:
-            sublime.status_message("In's IncludeComponent call. Cant figure out where to go.")
+            sublime.status_message("It's not IncludeComponent call. Can't figure out where to go.")
             return
 
         # Filter templates paths by template name.
