@@ -90,6 +90,63 @@ class BitrixSelectComponentTemplate(sublime_plugin.TextCommand):
             template_name = re.sub('\s*\(.+\)$', '', self.templates[index])
             self.view.run_command("bitrix_insert_text", { "text": template_name })
 
+class BitrixOpenComponentTemplateCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        self.bitrix_root = get_bitrix_root(self.view.file_name())
+        if not self.bitrix_root:
+            sublime.status_message("You are not in a bitrix web root!")
+            return
+
+        (component, template) = self.parse_line_under_cursor()
+        if not component or not template:
+            sublime.status_message("In's IncludeComponent call. Cant figure out where to go.")
+            return
+
+        # Filter templates paths by template name.
+        self.templates = list(filter(
+            re.compile(template + '$').search, 
+            self.get_component_templates(component, True)
+        ))
+
+        if len(self.templates) == 1:
+            self.open_template(self.templates[0])
+        else:
+            window = self.view.window();
+            window.show_quick_panel(self.templates, self.on_template_select, sublime.MONOSPACE_FONT)
+
+    def on_template_select(self, index):
+        if index > -1:
+            self.open_template(self.templates[index])        
+
+    def open_template(self, template_path):
+        template_file = template_path + os.sep + 'template.php'
+        if os.path.isfile(template_file):
+            window = self.view.window()
+            window.open_file(template_file, sublime.TRANSIENT)
+        else:
+            sublime.status_message("In's IncludeComponent call. Cant figure out where to go.")
+
+    def parse_line_under_cursor(self):
+        end_pos = self.view.sel()[0].end()
+        line = self.view.substr(self.view.line(end_pos))
+        pattern = (
+            '\$APPLICATION->IncludeComponent\s*\(\s*'
+            '[\"\'](?P<component>([a-zA-Z_-]+):([a-zA-Z._-]+))[\"\']\s*,\s*'
+            '\s*[\"\'](?P<template>([a-zA-Z._-]+))[\"\']\s*,'
+        )
+        matches = re.search(pattern, line)
+        if matches:
+            return (matches.group('component'), matches.group('template'))
+
+    def get_component_templates(self, component_name, full_path=False):
+        command = 'bxc templates:list -s --no-ansi ' + component_name
+        if full_path:
+            command += ' --full-path';
+        (success, output) = run_cmd(self.bitrix_root, command, True)
+        if not success:
+            sublime_plugin.status_message(output)            
+        return output.split(os.linesep) if success else []
+
 class BitrixInsertText(sublime_plugin.TextCommand):
     def run(self, edit, text):
         if text:
@@ -123,3 +180,5 @@ def run_cmd(cwd, cmd, wait, input_str=None):
     else:
         subprocess.Popen(cmd, cwd=cwd, shell=shell)
         return (False, None)            
+
+
