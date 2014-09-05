@@ -1,4 +1,5 @@
 [
     {"keys": ["alt+a"], "command": "bitrix_insert_component"},    
-    {"keys": ["alt+z"], "command": "bitrix_select_component_template"}  
+    {"keys": ["alt+z"], "command": "bitrix_select_component_template"},
+    { "keys": ["f12"], "command": "bitrix_open_component_template"}  
 ]
