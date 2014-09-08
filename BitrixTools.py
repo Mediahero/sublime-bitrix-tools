@@ -2,6 +2,7 @@ VERSION = "0.1.0"
 
 import sublime, sublime_plugin
 import os, pipes, subprocess
+import functools
 import re
 
 class BitrixInsertComponentCommand(sublime_plugin.TextCommand):
@@ -147,10 +148,80 @@ class BitrixOpenComponentTemplateCommand(sublime_plugin.TextCommand):
             sublime.status_message(output)            
         return output.split(os.linesep) if success else []
 
-class BitrixInsertText(sublime_plugin.TextCommand):
-    def run(self, edit, text):
-        if text:
-            self.view.insert(edit, self.view.sel()[0].begin(), text)
+class BitrixInsertTextCommand(sublime_plugin.TextCommand):
+    def run(self, edit, text, replace=False):
+        sel = self.view.sel()[0]
+        if text and not replace:
+            self.view.insert(edit, sel.begin(), text)
+        elif text and replace:
+            self.view.replace(edit, sublime.Region(sel.begin(), sel.end()), text)
+
+class BitrixNewComponentTemplateCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        self.bitrix_root = get_bitrix_root(self.view.file_name())
+        if self.bitrix_root:
+            self.edit = edit
+            self.template_content = self.get_template_content()            
+            self.components = self.get_components()
+            if self.components:
+                window = self.view.window()
+                window.show_quick_panel(self.components, self.on_component_select, sublime.MONOSPACE_FONT)
+        else:
+            sublime.status_message("You are not in a bitrix web root!")         
+
+    def get_components(self):
+        command = 'bxc component:list --no-ansi'
+        (success, output) = run_cmd(self.bitrix_root, command, True)
+        return output.split(os.linesep) if success else []
+
+    def on_component_select(self, index):
+        if index > -1:  
+            template_name = "new_template"
+            component = self.components[index];
+            template_content = self.get_template_content()            
+            self.view.window().show_input_panel(
+                "Template name:", 
+                template_name, 
+                functools.partial(self.on_done, component, template_content), 
+                None, 
+                None
+            )
+
+    def on_done(self, component, template_content, template_name):
+        self.create_component_template(component, template_name, template_content)
+        code = self.generate_include_component(component, template_name)
+        if code:
+            self.view.run_command("bitrix_insert_text", { "text": code, 'replace': True })
+
+    def get_template_content(self):
+        sel = self.view.sel()[0]
+        return self.view.substr(sublime.Region(sel.begin(), sel.end()))
+
+    def generate_include_component(self, component_name, template_name=''):
+        command = 'bxc generate:include --no-ansi --component=' + component_name
+        if template_name:
+            command += ' ' + template_name
+        (success, output) = run_cmd(self.bitrix_root, command, True)
+        if success:
+            return output
+        elif output: # Show error message
+            sublime.status_message(output)
+
+    def create_component_template(self, component, template_name, template_content):        
+        siteTemplate = 'ko2014'
+        (vendor_name, component_name) = component.split(':')        
+        template_folder = os.sep.join([
+            self.bitrix_root, 'local', 'templates', siteTemplate, 
+            'components', vendor_name, component_name, template_name
+        ])
+        if not os.path.exists(template_folder):
+            os.makedirs(template_folder, 0o775)
+
+        with open(os.path.join(template_folder, 'template.php'), 'w') as template_file:
+            template_file.write(
+                "<?if (!defined(\"B_PROLOG_INCLUDED\") || B_PROLOG_INCLUDED!==true) die();?>\n"                
+                + template_content
+            )
 
 BX_IBLOCK_PROPERTIES = [
     'ID', 'NAME', 'CODE', 'IBLOCK_ID', 'IBLOCK_SECTION_ID', 'IBLOCK_CODE', 'ACTIVE',
