@@ -207,8 +207,13 @@ class BitrixNewComponentTemplateCommand(sublime_plugin.TextCommand):
         elif output: # Show error message
             sublime.status_message(output)
 
+    def get_site_template_name(self):
+        site_templates_folder = os.sep.join([self.bitrix_root, 'local', 'templates'])
+        all_templates = os.listdir(site_templates_folder) 
+        return all_templates[0] #FIXME: Open select dialog
+
     def create_component_template(self, component, template_name, template_content):        
-        siteTemplate = 'ko2014'
+        siteTemplate = self.get_site_template_name()
         (vendor_name, component_name) = component.split(':')        
         template_folder = os.sep.join([
             self.bitrix_root, 'local', 'templates', siteTemplate, 
